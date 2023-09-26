@@ -15,7 +15,7 @@ use crate::packet::Packet;
 use crate::{Error, Locator, RawFrame, Resize};
 
 #[cfg(feature = "ndarray")]
-use crate::{ffi::convert_frame_to_ndarray_rgb24, Frame, Time};
+use crate::{ffi::convert_frame_to_ndarray, Frame, Time};
 
 type Result<T> = std::result::Result<T, Error>;
 
@@ -238,7 +238,7 @@ impl DecoderSplit {
                 // encoder will use when encoding for the `PTS` field.
                 let timestamp = Time::new(Some(frame.packet().dts), self.decoder_time_base);
                 let frame =
-                    convert_frame_to_ndarray_rgb24(&mut frame).map_err(Error::BackendError)?;
+                    convert_frame_to_ndarray(&mut frame).map_err(Error::BackendError)?;
 
                 Ok(Some((timestamp, frame)))
             }
