@@ -6,6 +6,7 @@ use ffmpeg::codec::encoder::video::Video as AvVideo;
 use ffmpeg::codec::flag::Flags as AvCodecFlags;
 use ffmpeg::codec::packet::Packet as AvPacket;
 use ffmpeg::codec::{Context as AvContext, Id as AvCodecId};
+use ffmpeg::ffi::AVPixelFormat::*;
 use ffmpeg::format::flag::Flags as AvFormatFlags;
 use ffmpeg::software::scaling::context::Context as AvScaler;
 use ffmpeg::software::scaling::flag::Flags as AvScalerFlags;
@@ -25,7 +26,7 @@ use crate::{
 };
 
 #[cfg(feature = "ndarray")]
-use crate::{ffi::convert_ndarray_to_frame_rgb24, Frame, Time};
+use crate::{ffi::convert_ndarray_to_frame, Frame, Time};
 
 type Result<T> = std::result::Result<T, Error>;
 
@@ -142,14 +143,17 @@ impl Encoder {
     #[cfg(feature = "ndarray")]
     pub fn encode(&mut self, frame: &Frame, source_timestamp: &Time) -> Result<()> {
         let (height, width, channels) = frame.dim();
-        if height != self.scaler_height as usize
-            || width != self.scaler_width as usize
-            || channels != 3
-        {
+        let pixel_format = match channels {
+            3 => AV_PIX_FMT_RGB24,
+            4 => AV_PIX_FMT_BGRA,
+            _ => return Err(Error::InvalidFrameFormat),
+        };
+
+        if height != self.scaler_height as usize || width != self.scaler_width as usize {
             return Err(Error::InvalidFrameFormat);
         }
 
-        let mut frame = convert_ndarray_to_frame_rgb24(frame).map_err(Error::BackendError)?;
+        let mut frame = convert_ndarray_to_frame(frame, pixel_format).map_err(Error::BackendError)?;
 
         frame.set_pts(
             source_timestamp
@@ -168,7 +172,7 @@ impl Encoder {
     pub fn encode_raw(&mut self, frame: RawFrame) -> Result<()> {
         if frame.width() != self.scaler_width
             || frame.height() != self.scaler_height
-            || frame.format() != FRAME_PIXEL_FORMAT
+            || (frame.format() != AvPixel::RGB24 && frame.format() != AvPixel::BGRA)
         {
             return Err(Error::InvalidFrameFormat);
         }
@@ -255,7 +259,7 @@ impl Encoder {
         let scaler_width = encoder.width();
         let scaler_height = encoder.height();
         let scaler = AvScaler::get(
-            FRAME_PIXEL_FORMAT,
+            AvPixel::BGRA,
             scaler_width,
             scaler_height,
             encoder.format(),
