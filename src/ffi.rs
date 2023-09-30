@@ -331,8 +331,8 @@ pub fn convert_frame_to_ndarray(frame: &mut Frame) -> Result<FrameArray, Error> 
             "Invalid frame format"
         );
 
-        let mut frame_array = 
-        FrameArray::default((frame_height as usize, frame_width as usize, 3_usize));
+        let mut frame_array =
+            FrameArray::default((frame_height as usize, frame_width as usize, 3_usize));
 
         let bytes_copied = av_image_copy_to_buffer(
             frame_array.as_mut_ptr(),

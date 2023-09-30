@@ -148,19 +148,19 @@ impl Encoder {
             4 => AV_PIX_FMT_BGRA,
             _ => return Err(Error::InvalidFrameFormat),
         };
-    
+
         if height != self.scaler_height as usize || width != self.scaler_width as usize {
             return Err(Error::InvalidFrameFormat);
         }
-    
+
         let mut frame = convert_ndarray_to_frame(frame, pixel_format).map_err(Error::BackendError)?;
-    
+
         frame.set_pts(
             source_timestamp
                 .aligned_with_rational(self.encoder_time_base)
                 .into_value(),
         );
-    
+
         self.encode_raw(frame)
     }
 
